@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-APP_TITLE = "Image Filtering — Linear"
+APP_TITLE = "Image Filtering — Linear & Non-Linear"
 
 DARK_QSS = """
 * { font-family: 'Segoe UI', Arial; font-size: 10.5pt; color: #E6E6E6; }
@@ -29,6 +29,20 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QSlider {
 }
 QSlider::groove:horizontal { height: 6px; background: #3a3c42; border-radius: 3px; }
 QSlider::handle:horizontal { background: #f1c57a; width: 14px; border-radius: 7px; margin: -4px 0; }
+QGroupBox { 
+    font-weight: bold; 
+    color: #f1c57a; 
+    background-color: #2b2d31; 
+    border: 1px solid #3a3c42; 
+    border-radius: 6px; 
+    margin-top: 8px; 
+    padding-top: 8px; 
+}
+QGroupBox::title { 
+    subcontrol-origin: margin; 
+    left: 10px; 
+    padding: 0 5px 0 5px; 
+}
 """
 
 def np_rgb_to_qpixmap(img_rgb: np.ndarray, target_size: QtCore.QSize) -> QtGui.QPixmap:
@@ -107,14 +121,18 @@ class MainWindow(QtWidgets.QMainWindow):
         side_layout.setContentsMargins(12, 12, 12, 12)
         side_layout.setSpacing(16)
         
-        side_layout.addWidget(QtWidgets.QLabel("DIP LAB — Linear Filters", objectName="Banner", alignment=QtCore.Qt.AlignCenter))
+        side_layout.addWidget(QtWidgets.QLabel("DIP LAB — All Filters", objectName="Banner", alignment=QtCore.Qt.AlignCenter))
         
         # Form layout for controls
         form = QtWidgets.QFormLayout()
         form.setLabelAlignment(QtCore.Qt.AlignRight)
         
         self.cboFilter = QtWidgets.QComboBox()
-        self.cboFilter.addItems(["Box/Average", "Gaussian", "Sobel X", "Sobel Y", "Laplacian", "Unsharp (α)"])
+        self.cboFilter.addItems([
+            "Box/Average", "Gaussian", "Sobel X", "Sobel Y", "Laplacian", "Unsharp (α)",
+            "--- Non-Linear Filters ---",
+            "Median", "Bilateral", "Morphological"
+        ])
         
         self.spnK = QtWidgets.QSpinBox()
         self.spnK.setRange(3, 101)
@@ -144,15 +162,50 @@ class MainWindow(QtWidgets.QMainWindow):
         alphaRow.addWidget(self.sldAlpha)
         alphaRow.addWidget(self.lblAlpha)
         
+        # Non-linear filter parameters
+        self.spnSigmaColor = QtWidgets.QSpinBox()
+        self.spnSigmaColor.setRange(1, 200)
+        self.spnSigmaColor.setValue(75)
+        
+        self.spnSigmaSpace = QtWidgets.QSpinBox()
+        self.spnSigmaSpace.setRange(1, 200)
+        self.spnSigmaSpace.setValue(75)
+        
+        self.cboMorphOp = QtWidgets.QComboBox()
+        self.cboMorphOp.addItems(["opening", "closing", "erosion", "dilation", "gradient"])
+        
+        self.cboKernelShape = QtWidgets.QComboBox()
+        self.cboKernelShape.addItems(["ellipse", "rect", "cross"])
+        
         form.addRow("Filter:", self.cboFilter)
         form.addRow("Kernel size (odd):", self.spnK)
-        form.addRow("σ (Gaussian):", self.dspSigma)
         form.addRow("Iterations:", self.spnIter)
-        form.addRow("Border:", self.cboBorder)
         form.addRow("", self.chkGray)
-        form.addRow("Unsharp α:", alphaRow)
         
         side_layout.addLayout(form)
+        
+        # Linear Filter Parameters Group
+        self.linear_group = QtWidgets.QGroupBox("Linear Filter Parameters")
+        linear_form = QtWidgets.QFormLayout(self.linear_group)
+        linear_form.setLabelAlignment(QtCore.Qt.AlignRight)
+        
+        linear_form.addRow("σ (Gaussian):", self.dspSigma)
+        linear_form.addRow("Border:", self.cboBorder)
+        linear_form.addRow("Unsharp α:", alphaRow)
+        
+        side_layout.addWidget(self.linear_group)
+        
+        # Non-Linear Filter Parameters Group
+        self.nonlinear_group = QtWidgets.QGroupBox("Non-Linear Filter Parameters")
+        nonlinear_form = QtWidgets.QFormLayout(self.nonlinear_group)
+        nonlinear_form.setLabelAlignment(QtCore.Qt.AlignRight)
+        
+        nonlinear_form.addRow("Bilateral σ Color:", self.spnSigmaColor)
+        nonlinear_form.addRow("Bilateral σ Space:", self.spnSigmaSpace)
+        nonlinear_form.addRow("Morph Operation:", self.cboMorphOp)
+        nonlinear_form.addRow("Kernel Shape:", self.cboKernelShape)
+        
+        side_layout.addWidget(self.nonlinear_group)
         
         # Buttons
         btnRow = QtWidgets.QHBoxLayout()
@@ -193,9 +246,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.btnApply.clicked.connect(self.on_apply)
         self.btnReset.clicked.connect(self.on_reset)
         self.sldAlpha.valueChanged.connect(lambda v: self.lblAlpha.setText(f"α = {v/100:.2f}"))
+        self.cboFilter.currentTextChanged.connect(self.on_filter_changed)
+        
+        # Initialize parameter visibility
+        self.on_filter_changed()
         
         # Apply style
         self.setStyleSheet(DARK_QSS)
+    
+    def on_filter_changed(self):
+        """Update parameter visibility based on selected filter."""
+        filter_name = self.cboFilter.currentText()
+        
+        # Define filter categories
+        linear_filters = ["Box/Average", "Gaussian", "Sobel X", "Sobel Y", "Laplacian", "Unsharp (α)"]
+        nonlinear_filters = ["Median", "Bilateral", "Morphological"]
+        
+        # Show/hide appropriate parameter groups
+        if filter_name in linear_filters:
+            self.linear_group.setVisible(True)
+            self.nonlinear_group.setVisible(False)
+        elif filter_name in nonlinear_filters:
+            self.linear_group.setVisible(False)
+            self.nonlinear_group.setVisible(True)
+        else:
+            # Separator or unknown filter
+            self.linear_group.setVisible(False)
+            self.nonlinear_group.setVisible(False)
     
     def on_open(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -220,31 +297,66 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.information(self, "Info", "Load an image first.")
             return
         
-        params = dict(
-            img_rgb=self._orig,
-            filter_name=self.cboFilter.currentText(),
-            ksize=int(self.spnK.value()),
-            sigma=float(self.dspSigma.value()),
-            border_mode_str=self.cboBorder.currentText(),
-            grayscale_only=self.chkGray.isChecked(),
-            iterations=int(self.spnIter.value()),
-            unsharp_alpha=float(self.sldAlpha.value())/100.0
-        )
+        filter_name = self.cboFilter.currentText()
         
-        try:
-            from linear_filters import apply_linear_filter
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(
-                self, "Not implemented",
-                "Λείπει το αρχείο ή η συνάρτηση: linear_filters.apply_linear_filter(...)\n\n" + str(e)
-            )
+        # Skip the separator line
+        if filter_name == "--- Non-Linear Filters ---":
+            QtWidgets.QMessageBox.information(self, "Info", "Please select an actual filter.")
             return
         
+        # Determine if it's a linear or non-linear filter
+        linear_filters = ["Box/Average", "Gaussian", "Sobel X", "Sobel Y", "Laplacian", "Unsharp (α)"]
+        nonlinear_filters = ["Median", "Bilateral", "Morphological"]
+        
         try:
-            result = apply_linear_filter(**params)
+            if filter_name in linear_filters:
+                # Apply linear filter
+                from linear_filters import apply_linear_filter
+                
+                params = dict(
+                    img_rgb=self._orig,
+                    filter_name=filter_name,
+                    ksize=int(self.spnK.value()),
+                    sigma=float(self.dspSigma.value()),
+                    border_mode_str=self.cboBorder.currentText(),
+                    grayscale_only=self.chkGray.isChecked(),
+                    iterations=int(self.spnIter.value()),
+                    unsharp_alpha=float(self.sldAlpha.value())/100.0
+                )
+                
+                result = apply_linear_filter(**params)
+                
+            elif filter_name in nonlinear_filters:
+                # Apply non-linear filter
+                from nonlinear_filters import apply_nonlinear_filter
+                
+                params = dict(
+                    img_rgb=self._orig,
+                    filter_name=filter_name,
+                    ksize=int(self.spnK.value()),
+                    sigma_color=float(self.spnSigmaColor.value()),
+                    sigma_space=float(self.spnSigmaSpace.value()),
+                    morph_operation=self.cboMorphOp.currentText(),
+                    kernel_shape=self.cboKernelShape.currentText(),
+                    grayscale_only=self.chkGray.isChecked(),
+                    iterations=int(self.spnIter.value())
+                )
+                
+                result = apply_nonlinear_filter(**params)
+                
+            else:
+                QtWidgets.QMessageBox.warning(self, "Error", f"Unknown filter: {filter_name}")
+                return
+                
+        except ImportError as e:
+            QtWidgets.QMessageBox.warning(
+                self, "Missing Module",
+                f"Could not import filter module:\n{e}"
+            )
+            return
         except NotImplementedError:
             QtWidgets.QMessageBox.information(
-                self, "TODO", "Υλοποιήστε τη συνάρτηση apply_linear_filter"
+                self, "TODO", "Υλοποιήστε τη συνάρτηση φίλτρου"
             )
             return
         except Exception as e:

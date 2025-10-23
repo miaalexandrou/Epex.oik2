@@ -1,10 +1,10 @@
-# Image Filtering GUI - Linear Filters
+# Image Filtering GUI - Linear & Non-Linear Filters
 
-Εργαστηριακή Άσκηση 4 – Γραμμικά Φίλτρα (Image Filtering GUI)
+Εργαστηριακή Άσκηση 4 – Γραμμικά & Μη-γραμμικά Φίλτρα (Image Filtering GUI)
 
 ## Περιγραφή
 
-Αυτή η εφαρμογή υλοποιεί ένα περιβάλlon γραφικού χρήστη (GUI) για την εφαρμογή γραμμικών φίλτρων σε εικόνες χρησιμοποιώντας PyQt5 και OpenCV.
+Αυτή η εφαρμογή υλοποιεί ένα περιβάλlon γραφικού χρήστη (GUI) για την εφαρμογή τόσο γραμμικών όσο και μη-γραμμικών φίλτρων σε εικόνες χρησιμοποιώντας PyQt5 και OpenCV.
 
 ## Εγκατάσταση
 
@@ -24,12 +24,18 @@ python filtering_gui.py
 
 ### Διαθέσιμα Φίλτρα
 
+#### Γραμμικά Φίλτρα (Linear Filters)
 1. **Box/Average Filter** - Εξομαλύνει την εικόνα παίρνοντας τον μέσο όρο των γειτονικών pixels
 2. **Gaussian Filter** - Εξομάλυνση με Gaussian κατανομή (παράμετρος σ)
 3. **Sobel X** - Ανίχνευση κάθετων ακμών 
 4. **Sobel Y** - Ανίχνευση οριζόντιων ακμών
 5. **Laplacian** - Ανίχνευση ακμών σε όλες τις κατευθύνσεις
 6. **Unsharp (α)** - Οξύνση εικόνας με παράμετρο α
+
+#### Μη-γραμμικά Φίλτρα (Non-Linear Filters)
+7. **Median Filter** - Αφαίρεση salt & pepper θορύβου διατηρώντας τις ακμές
+8. **Bilateral Filter** - Εξομάλυνση που διατηρεί τις ακμές (edge-preserving smoothing)
+9. **Morphological Filter** - Μορφολογικές πράξεις (opening, closing, erosion, dilation, gradient)
 
 ### Παράμετροι
 
@@ -39,6 +45,10 @@ python filtering_gui.py
 - **Border**: Τρόπος χειρισμού ορίων (reflect/replicate/constant)
 - **Grayscale processing**: Επεξεργασία σε γκρίζα κλίμακα
 - **Unsharp α**: Παράμετρος οξύνσης για Unsharp Masking (0.0-3.0)
+- **Bilateral σ Color**: Χρωματικό σ για Bilateral filter (1-200)
+- **Bilateral σ Space**: Χωρικό σ για Bilateral filter (1-200)
+- **Morph Operation**: Μορφολογική πράξη (opening/closing/erosion/dilation/gradient)
+- **Kernel Shape**: Σχήμα πυρήνα (ellipse/rect/cross)
 
 ## Εικόνες Δοκιμής
 
@@ -118,12 +128,37 @@ python filtering_gui.py
 - Συγκρίνετε τα αποτελέσματα με και χωρίς grayscale
 - **Παρατήρηση**: Ποια διαφορά υπάρχει στα edge detection φίλτρα;
 
+### Εικόνες για Μη-γραμμικά Φίλτρα
+
+#### 9. Salt & Pepper Noise (`09_salt_pepper_noise.png`)
+- **Χρήση**: Ιδανική για Median filter
+- **Προτεινόμενα φίλτρα**: Median με διαφορετικά kernel sizes (3, 5, 7, 9)
+- **Παρατηρήσεις**: Δείτε πώς το Median αφαιρεί τον θόρυβο χωρίς να θολώνει τις ακμές
+
+#### 10. Binary Morphological (`10_binary_morphological.png`)
+- **Χρήση**: Ιδανική για Morphological operations
+- **Προτεινόμενα φίλτρα**: Opening (αφαίρεση θορύβου), Closing (γέμισμα κενών)
+- **Παρατηρήσεις**: Δοκιμάστε Erosion/Dilation και δείτε τα αποτελέσματα
+
+#### 11. Edge-Rich Bilateral (`11_edge_rich_bilateral.png`)
+- **Χρήση**: Ιδανική για Bilateral filter
+- **Προτεινόμενα φίλτρα**: Bilateral με διαφορετικές τιμές σ
+- **Παρατηρήσεις**: Συγκρίνετε με Gaussian - δείτε πώς διατηρούνται οι ακμές
+
+#### 12. Gaussian Noise (`12_gaussian_noise.png`)
+- **Χρήση**: Σύγκριση διαφορετικών smoothing φίλτρων
+- **Προτεινόμενα φίλτρα**: Median vs Bilateral vs Gaussian
+- **Παρατηρήσεις**: Ποιο φίλτρο δουλεύει καλύτερα για Gaussian noise?
+
 ## Αρχεία Έργου
 
-- `filtering_gui.py` - Κύρια εφαρμογή GUI
-- `linear_filters.py` - Υλοποίηση φίλτρων
-- `generate_test_images.py` - Δημιουργία εικόνων δοκιμής
-- `test_images/` - Φάκελος με εικόνες δοκιμής
+- `filtering_gui.py` - Κύρια εφαρμογή GUI (Linear & Non-Linear)
+- `linear_filters.py` - Υλοποίηση γραμμικών φίλτρων
+- `nonlinear_filters.py` - Υλοποίηση μη-γραμμικών φίλτρων
+- `generate_test_images.py` - Δημιουργία εικόνων δοκιμής (γραμμικά)
+- `generate_nonlinear_test_images.py` - Δημιουργία εικόνων δοκιμής (μη-γραμμικά)
+- `enhanced_filtering_gui.py` - Εναλλακτική GUI με tabs για filter types
+- `test_images/` - Φάκελος με 12 εικόνες δοκιμής
 
 ## Τεχνικές Λεπτομέρειες
 
